@@ -1,6 +1,7 @@
 pipeline {
      environment {
-       ID_DOCKER = "${ID_DOCKER_PARAMS}"
+       DOCKERHUB_AUTH = credentials('DOCKERHUB_AUTH')
+       ID_DOCKER = "${DOCKERHUB_AUTH_USR}"
        IMAGE_NAME = "alpinehelloworld"
        IMAGE_TAG = "latest"
        PORT_EXPOSED = "80" 
