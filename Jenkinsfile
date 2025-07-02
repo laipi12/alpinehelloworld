@@ -1,6 +1,6 @@
 pipeline {
      environment {
-       DOCKERHUB_AUTH = credentials('DOCKERHUB_AUTH')
+       DOCKERHUB_AUTH = credentials('dockerhub_AUTH')
        ID_DOCKER = "${DOCKERHUB_AUTH_USR}"
        IMAGE_NAME = "alpinehelloworld"
        IMAGE_TAG = "latest"
