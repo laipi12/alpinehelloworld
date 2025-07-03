@@ -80,6 +80,7 @@ pipeline {
       steps {
           script {
             sh '''
+              apk add --no-cache nodejs npm
               npm i -g heroku@7.68.0
               # Add npm global bin to PATH
               export PATH=\$(npm bin -g):\$PATH
