@@ -1,6 +1,5 @@
 pipeline {
      environment {
-       ID_DOCKER = "${ID_DOCKER_PARAMS}"
        IMAGE_NAME = "alpinehelloworld"
        IMAGE_TAG = "latest"
        PORT_EXPOSED = "80"
@@ -59,7 +58,7 @@ pipeline {
            DOCKERHUB_PASSWORD  = credentials('dockerhub')
         }            
           steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                 {
              script {
                sh '''
                    echo $DOCKERHUB_PASSWORD_PSW | docker login -u $ID_DOCKER --password-stdin
@@ -80,7 +79,7 @@ pipeline {
       steps {
           script {
             sh '''
-              npm i -g heroku@7.68.0
+             
               heroku container:login
               heroku create $STAGING || echo "project already exist"
               heroku container:push -a $STAGING web
