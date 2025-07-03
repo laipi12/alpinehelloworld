@@ -80,11 +80,11 @@ pipeline {
       steps {
           script {
             sh '''
-              apk add --no-cache nodejs npm
+              # apk add --no-cache nodejs npm
               npm i -g heroku@7.68.0
               # Add npm global bin to PATH
-              export PATH=\$(npm bin -g):\$PATH
-              export HEROKU_API_KEY=$HEROKU_API_KEY
+              # export PATH=\$(npm bin -g):\$PATH
+              # export HEROKU_API_KEY=$HEROKU_API_KEY
               heroku container:login
               heroku create $STAGING || echo "project already exist"
               heroku container:push -a $STAGING web
@@ -96,28 +96,6 @@ pipeline {
 
 
 
-     stage('Push image in production and deploy it') {
-       when {
-              expression { GIT_BRANCH == 'origin/production' }
-            }
-      agent any
-      environment {
-          HEROKU_API_KEY = credentials('heroku_api_key')
-      }
-      steps {
-          script {
-            sh '''
-              npm i -g heroku@7.68.0
-              # Add npm global bin to PATH
-              export PATH=\$(npm bin -g):\$PATH
-              export HEROKU_API_KEY=$HEROKU_API_KEY
-              heroku container:login
-              heroku create $PRODUCTION || echo "project already exist"
-              heroku container:push -a $PRODUCTION web
-              heroku container:release -a $PRODUCTION web
-            '''
-          }
-        }
-     }
+
   }
 }
