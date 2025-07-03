@@ -1,11 +1,9 @@
 pipeline {
      environment {
-       DOCKERHUB_AUTH = credentials('dockerhub')
-       ID_DOCKER = "${DOCKERHUB_AUTH_USR}"
+       ID_DOCKER = "${ID_DOCKER_PARAMS}"
        IMAGE_NAME = "alpinehelloworld"
        IMAGE_TAG = "latest"
-       PORT_EXPOSED = "80" 
-//  à paraméter dans le job
+//       PORT_EXPOSED = "80" à paraméter dans le job
        STAGING = "${ID_DOCKER}-staging"
        PRODUCTION = "${ID_DOCKER}-production"
      }
@@ -58,17 +56,17 @@ pipeline {
           agent any
         environment {
            DOCKERHUB_PASSWORD  = credentials('dockerhub')
-        }
+        }            
           steps {
              script {
                sh '''
-                   docker login -u $DOCKERHUB_AUTH_USR -p $DOCKERHUB_AUTH_PSW
+                   echo $DOCKERHUB_PASSWORD_PSW | docker login -u $ID_DOCKER --password-stdin
                    docker push ${ID_DOCKER}/$IMAGE_NAME:$IMAGE_TAG
                '''
              }
           }
-      }
-
+      }    
+     
      stage('Push image in staging and deploy it') {
        when {
               expression { GIT_BRANCH == 'origin/master' }
@@ -76,15 +74,11 @@ pipeline {
       agent any
       environment {
           HEROKU_API_KEY = credentials('heroku_api_key')
-      }
+      }  
       steps {
           script {
             sh '''
-              # apk add --no-cache nodejs npm
               npm i -g heroku@7.68.0
-              # Add npm global bin to PATH
-              # export PATH=\$(npm bin -g):\$PATH
-              # export HEROKU_API_KEY=$HEROKU_API_KEY
               heroku container:login
               heroku create $STAGING || echo "project already exist"
               heroku container:push -a $STAGING web
@@ -96,6 +90,25 @@ pipeline {
 
 
 
-
+     stage('Push image in production and deploy it') {
+       when {
+              expression { GIT_BRANCH == 'origin/production' }
+            }
+      agent any
+      environment {
+          HEROKU_API_KEY = credentials('heroku_api_key')
+      }  
+      steps {
+          script {
+            sh '''
+              npm i -g heroku@7.68.0
+              heroku container:login
+              heroku create $PRODUCTION || echo "project already exist"
+              heroku container:push -a $PRODUCTION web
+              heroku container:release -a $PRODUCTION web
+            '''
+          }
+        }
+     }
   }
 }
