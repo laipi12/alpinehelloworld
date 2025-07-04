@@ -6,6 +6,7 @@ pipeline {
         ID_DOCKER = "laipi12"  // à adapter
         STAGING = "${ID_DOCKER}-staging"
         PRODUCTION = "${ID_DOCKER}-production"
+        GIT_BRANCH = "${env.GIT_BRANCH ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()}"
     }
 
     agent none
