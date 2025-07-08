@@ -85,7 +85,7 @@ pipeline {
                             -o SendEnv=IMAGE_TAG \
                             -o SendEnv=DOCKERHUB_AUTH_USR \
                             -o SendEnv=DOCKERHUB_AUTH_PSW \
-                            -C "$command1 && $command2 && $command3 && $command4"
+                            -C "$command1 && $command2  && $command4"
                     '''
                 }
             }
@@ -110,7 +110,7 @@ pipeline {
                             -o SendEnv=IMAGE_TAG \
                             -o SendEnv=DOCKERHUB_AUTH_USR \
                             -o SendEnv=DOCKERHUB_AUTH_PSW \
-                            -C "$command1 && $command2 && $command3 && $command4"
+                            -C "$command1 && $command2  && $command4"
                     '''
                 }
             }
