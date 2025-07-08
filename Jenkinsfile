@@ -97,7 +97,7 @@ pipeline {
                 HOSTNAME_DEPLOY_PROD = "ec2-34-224-51-210.compute-1.amazonaws.com"
             }
             steps {
-                sshagent(credentials: ['SSH_AUTH_PROD']) {
+                sshagent(credentials: ['SSH_AUTH_SERVER']) {
                     sh '''
                         [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
                         ssh-keyscan -t rsa,dsa ${HOSTNAME_DEPLOY_PROD} >> ~/.ssh/known_hosts
