@@ -1,18 +1,12 @@
 pipeline {
-    environment {
-        IMAGE_NAME = "alpinehelloworld"
-        IMAGE_TAG = "latest"
-        PORT_EXPOSED = "80"
-        ID_DOCKER = "laipi12"  // à adapter
-        STAGING = "${ID_DOCKER}-staging"
-        PRODUCTION = "${ID_DOCKER}-production"
-        GIT_BRANCH = "${env.GIT_BRANCH ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()}"
-    }
-
     agent none
-
+    environment {
+        DOCKERHUB_AUTH = credentials('DOCKERHUB_AUTH')
+        ID_DOCKER = "${DOCKERHUB_AUTH_USR}"
+        PORT_EXPOSED = "80"
+    }
     stages {
-        stage('Build image') {
+        stage ('Build Image') {
             agent any
             steps {
                 script {
@@ -21,17 +15,17 @@ pipeline {
             }
         }
 
-        stage('Run container based on built image') {
+        stage('Run container based on builded image') {
             agent any
             steps {
-                script {
-                    sh '''
-                        echo "Clean Environment"
-                        docker rm -f $IMAGE_NAME || echo "Container does not exist"
-                        docker run --name $IMAGE_NAME -d -p ${PORT_EXPOSED}:5000 -e PORT=5000 ${ID_DOCKER}/$IMAGE_NAME:$IMAGE_TAG
-                        sleep 5
-                    '''
-                }
+               script {
+                 sh '''
+                    echo "Clean Environment"
+                    docker rm -f $IMAGE_NAME || echo "container does not exist"
+                    docker run --name $IMAGE_NAME -d -p ${PORT_EXPOSED}:5000 -e PORT=5000 ${ID_DOCKER}/$IMAGE_NAME:$IMAGE_TAG
+                    sleep 5
+                 '''
+               }
             }
         }
 
@@ -40,7 +34,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        curl http://172.17.0.1:${PORT_EXPOSED} | grep -q "Hello world!"
+                        curl http://172.17.0.1:${PORT_EXPOSED} | grep -q "Hello world Lewis!"
                     '''
                 }
             }
@@ -58,60 +52,67 @@ pipeline {
             }
         }
 
-        stage('Login and Push Image on docker hub') {
-            agent any
-            environment {
-                DOCKERHUB_PASSWORD = credentials('dockerhub')
-            }
+        stage ('Login and Push Image on docker hub') {
+            agent any           
             steps {
                 script {
                     sh '''
-                        echo $DOCKERHUB_PASSWORD | docker login -u $ID_DOCKER --password-stdin
+                        docker login -u $DOCKERHUB_AUTH_USR -p $DOCKERHUB_AUTH_PSW
                         docker push ${ID_DOCKER}/$IMAGE_NAME:$IMAGE_TAG
                     '''
                 }
             }
         }
 
-        stage('Push image in staging and deploy it') {
-            when {
-                branch 'master'
-            }
+        stage ('Deploy in staging') {
             agent any
             environment {
-                HEROKU_API_KEY = credentials('heroku_api_key')
+                HOSTNAME_DEPLOY_STAGING = "ec2-54-204-61-138.compute-1.amazonaws.com"
             }
             steps {
-                script {
+                sshagent(credentials: ['SSH_AUTH_SERVER']) {
                     sh '''
-                        heroku container:login
-                        heroku create $STAGING || echo "project already exists"
-                        heroku container:push -a $STAGING web
-                        heroku container:release -a $STAGING web
+                        [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
+                        ssh-keyscan -t rsa,dsa ${HOSTNAME_DEPLOY_STAGING} >> ~/.ssh/known_hosts
+                        command1="docker login -u $DOCKERHUB_AUTH_USR -p $DOCKERHUB_AUTH_PSW"
+                        command2="docker pull $DOCKERHUB_AUTH_USR/$IMAGE_NAME:$IMAGE_TAG"
+                        command3="docker rm -f webapp || echo 'app does not exist'"
+                        command4="docker run -d -p 80:5000 -e PORT=5000 --name webapp $DOCKERHUB_AUTH_USR/$IMAGE_NAME:$IMAGE_TAG"
+                        ssh -t centos@${HOSTNAME_DEPLOY_STAGING} \
+                            -o SendEnv=IMAGE_NAME \
+                            -o SendEnv=IMAGE_TAG \
+                            -o SendEnv=DOCKERHUB_AUTH_USR \
+                            -o SendEnv=DOCKERHUB_AUTH_PSW \
+                            -C "$command1 && $command2 && $command3 && $command4"
                     '''
                 }
             }
         }
 
-        stage('Push image in production and deploy it') {
-            when {
-                branch 'production'
-            }
+        stage ('Deploy in prod') {
             agent any
             environment {
-                HEROKU_API_KEY = credentials('heroku_api_key')
+                HOSTNAME_DEPLOY_PROD = "ec2-100-26-55-58.compute-1.amazonaws.com"
             }
             steps {
-                script {
+                sshagent(credentials: ['SSH_AUTH_PROD']) {
                     sh '''
-                        npm i -g heroku@7.68.0
-                        heroku container:login
-                        heroku create $PRODUCTION || echo "project already exists"
-                        heroku container:push -a $PRODUCTION web
-                        heroku container:release -a $PRODUCTION web
+                        [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
+                        ssh-keyscan -t rsa,dsa ${HOSTNAME_DEPLOY_PROD} >> ~/.ssh/known_hosts
+                        command1="docker login -u $DOCKERHUB_AUTH_USR -p $DOCKERHUB_AUTH_PSW"
+                        command2="docker pull $DOCKERHUB_AUTH_USR/$IMAGE_NAME:$IMAGE_TAG"
+                        command3="docker rm -f webapp || echo 'app does not exist'"
+                        command4="docker run -d -p 80:5000 -e PORT=5000 --name webapp $DOCKERHUB_AUTH_USR/$IMAGE_NAME:$IMAGE_TAG"
+                        ssh -t centos@${HOSTNAME_DEPLOY_PROD} \
+                            -o SendEnv=IMAGE_NAME \
+                            -o SendEnv=IMAGE_TAG \
+                            -o SendEnv=DOCKERHUB_AUTH_USR \
+                            -o SendEnv=DOCKERHUB_AUTH_PSW \
+                            -C "$command1 && $command2 && $command3 && $command4"
                     '''
                 }
             }
         }
+
     }
 }
