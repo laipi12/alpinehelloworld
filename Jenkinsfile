@@ -1,8 +1,8 @@
 pipeline {
     agent none
     environment {
-        IMAGE_NAME = junior
-        IMAGE_TAG = latest
+        IMAGE_NAME = "junior"
+        IMAGE_TAG = "latest"
         DOCKERHUB_AUTH = credentials('dockerhub')
         ID_DOCKER = "${DOCKERHUB_AUTH_USR}"
         PORT_EXPOSED = "80"
